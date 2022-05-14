@@ -4,7 +4,7 @@ A Minecraft mod supporting the concept of ownership of chunks in a Minecraft wor
 
 ## Installation
 
-Currently, there is no distributio of the mod directly. Instead, you need to pull the code, build it, and then install the resulting mod. Do not worry - it is pretty painless! You do need some software, though:
+Currently, there is no distribution of the mod directly. Instead, you need to pull the code, build it, and then install the resulting mod. Do not worry - it is pretty painless! You do need some software, though:
 
 * `git` - Used to get (ha) the code.
 * `nvm` - Used to install and use the correct version of `node`.
@@ -42,7 +42,7 @@ Right now, the mod supports three commands:
 * `+bl:check` - Check who owns the chunk at your location.
 * `+bl:transfer playerName` - Transfer ownership of the chunk at your location to another player provided you own the chunk.
 
-**NOTE** - Owning a chunk currently does nothing aside from being able to say you do. Actual ownership rights will come soon.
+**NOTE** - While owning a chunk prevents other players from building or destroying blocks on it, it does not prevent other players from harming entities on your chunk. Hopefully, protections for entities will come in time.
 
 ## Development
 
