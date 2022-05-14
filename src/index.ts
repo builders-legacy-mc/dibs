@@ -1,4 +1,5 @@
 import { world } from "mojang-minecraft";
+import { StandardCommandRegistry } from "./command_registry";
 import { StandardCoreDatabase } from "./database/core";
 import { OwnershipDatabase, StandardOwnershipDatabase } from "./database/ownership";
 import { StandardScoreboard } from "./scoreboard";
@@ -24,6 +25,100 @@ try {
   globalError = error;
 }
 
+const commandRegistry = new StandardCommandRegistry();
+
+commandRegistry.setEventValidator(
+  "bl",
+  (event) => {
+    if (event.sender.dimension.id !== "minecraft:overworld") {
+      reply(event.sender, "You can only use '+bl:' commands in the overworld.");
+      return false;
+    }
+
+    return true;
+  }
+);
+
+commandRegistry.setCommandHandler(
+  "bl",
+  "check",
+  (event, args) => {
+    if (args.length !== 0) {
+      reply(event.sender, "Usage: '+bl:check'");
+      return;
+    }
+
+    const chunkId = playerChunkId(event.sender);
+
+    try {
+      if (ownershipDb.hasOwner(chunkId)) {
+        if (ownershipDb.isOwner(chunkId, event.sender.name)) {
+          reply(event.sender, "You have dibs on this chunk.");
+        } else {
+          reply(event.sender, `${ownershipDb.getOwner(chunkId)} has dibs on this chunk.`);
+        }
+      } else {
+        reply(event.sender, "No one has dibs on this chunk.")
+      }
+    } catch (error) {
+      replyWithError(event.sender, "Dibs", error);
+    }
+  }
+);
+
+commandRegistry.setCommandHandler(
+  "bl",
+  "dibs",
+  (event, args) => {
+    if (args.length !== 0) {
+      reply(event.sender, "Usage: '+bl:dibs'");
+      return;
+    }
+
+    const chunkId = playerChunkId(event.sender);
+
+    try {
+      if (ownershipDb.hasOwner(chunkId)) {
+        if (ownershipDb.isOwner(chunkId, event.sender.name)) {
+          reply(event.sender, "You already have dibs on this chunk.");
+        } else {
+          reply(event.sender, `${ownershipDb.getOwner(chunkId)} already has dibs on this chunk.`);
+        }
+      } else {
+        ownershipDb.setOwner(chunkId, event.sender.name);
+        reply(event.sender, "You successfully called dibs on this chunk.")
+      }
+    } catch (error) {
+      replyWithError(event.sender, "Dibs", error);
+    }
+  }
+);
+
+commandRegistry.setCommandHandler(
+  "bl",
+  "transfer",
+  (event, args) => {
+    if (args.length !== 1) {
+      reply(event.sender, "Usage: '+bl:transfer <to>'");
+      return;
+    }
+
+    const to = args[0];
+    const chunkId = playerChunkId(event.sender);
+
+    try {
+      if (ownershipDb.isOwner(chunkId, event.sender.name)) {
+        ownershipDb.setOwner(chunkId, to);
+        reply(event.sender, `You successfully transferred this chunk to ${to}.`);
+      } else {
+        reply(event.sender, "You cannot transfer a chunk you do not have dibs on.");
+      }
+    } catch (error) {
+      replyWithError(event.sender, "Dibs", error);
+    }
+  }
+)
+
 world.events.beforeChat.subscribe((event) => {
   if (event.message.indexOf("+bl:") === 0 && !event.sendToTargets) {
     event.cancel = true;
@@ -33,79 +128,14 @@ world.events.beforeChat.subscribe((event) => {
       return;
     }
 
-    if (event.sender.dimension.id === "minecraft:overworld") {
-      const command = event.message.slice(4).split(" ");
+    if (commandRegistry.validateEvent("bl", event)) {
+      const [command, ...args] = event.message.slice(4).split(" ");
 
-      if (command[0] === "check") {
-        if (command.length > 1) {
-          reply(event.sender, "Usage: '+bl:check'");
-          return;
-        }
-
-        const chunkId = playerChunkId(event.sender);
-
-        try {
-          if (ownershipDb.hasOwner(chunkId)) {
-            if (ownershipDb.isOwner(chunkId, event.sender.name)) {
-              reply(event.sender, "You have dibs on this chunk.");
-            } else {
-              reply(event.sender, `${ownershipDb.getOwner(chunkId)} has dibs on this chunk.`);
-            }
-          } else {
-            reply(event.sender, "No one has dibs on this chunk.")
-          }
-        } catch (error) {
-          replyWithError(event.sender, "Dibs", error);
-          return;
-        }
-      } else if (command[0] === "dibs") {
-        if (command.length > 1) {
-          reply(event.sender, "Usage: '+bl:dibs'");
-          return;
-        }
-
-        const chunkId = playerChunkId(event.sender);
-
-        try {
-          if (ownershipDb.hasOwner(chunkId)) {
-            if (ownershipDb.isOwner(chunkId, event.sender.name)) {
-              reply(event.sender, "You already have dibs on this chunk.");
-            } else {
-              reply(event.sender, `${ownershipDb.getOwner(chunkId)} already has dibs on this chunk.`);
-            }
-          } else {
-            ownershipDb.setOwner(chunkId, event.sender.name);
-            reply(event.sender, "You successfully called dibs on this chunk.")
-          }
-        } catch (error) {
-          replyWithError(event.sender, "Dibs", error);
-          return;
-        }
-      } else if (command[0] === "transfer") {
-        const to = command[1];
-        const chunkId = playerChunkId(event.sender);
-
-        if (!to) {
-          reply(event.sender, "Usage: '+bl:transfer <to>'");
-          return;
-        }
-
-        try {
-          if (ownershipDb.isOwner(chunkId, event.sender.name)) {
-            ownershipDb.setOwner(chunkId, to);
-            reply(event.sender, `You successfully transferred this chunk to ${to}.`);
-          } else {
-            reply(event.sender, "You cannot transfer a chunk you do not have dibs on.");
-          }
-        } catch (error) {
-          replyWithError(event.sender, "Dibs", error);
-          return;
-        }
+      if (commandRegistry.hasCommandHandler("bl", command)) {
+        commandRegistry.processCommand("bl", event, command, args);
       } else {
-        reply(event.sender, `Unknown command '+bl:${command[0]}'`);
+        reply(event.sender, `Unknown command '+bl:${command}'`);
       }
-    } else {
-      reply(event.sender, "You can only use '+bl:' commands in the overworld.")
     }
   }
 });
