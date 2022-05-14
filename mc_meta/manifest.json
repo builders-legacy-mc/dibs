@@ -1,0 +1,41 @@
+{
+  "format_version": 2,
+  "header": {
+    "description": "A mod adding chunk ownership capabilities.",
+    "name": "Bulider's Legacy - Dibs",
+    "uuid": "28e09965-5dc3-4438-8a9f-7715779d524b",
+    "version": [
+      0,
+      1,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      18,
+      30
+    ]
+  },
+  "modules": [
+    {
+      "description": "A script to handle chunk ownership.",
+      "type": "javascript",
+      "uuid": "a0761aa0-b79f-41bf-904c-368e14f4c9ad",
+      "version": [
+        0,
+        1,
+        0
+      ],
+      "entry": "scripts/index.js"
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "b26a4d4c-afdf-4690-88f8-931846312678",
+      "version": [
+        0,
+        1,
+        0
+      ]
+    }
+  ]
+}
